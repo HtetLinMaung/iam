@@ -1,0 +1,9 @@
+POST http://localhost:5000/iam/auth/check-otp HTTP/1.1
+content-type: application/json
+
+{
+    "appid": "digitalinventory",
+    "userid": "jsthtet96@gmail.com",
+    "otpcode": "137874",
+    "otpsession": "6173b676b656295dbbb988c8"
+}
