@@ -8,6 +8,7 @@ content-type: application/json
     "username": "John Satieer",
     "companyid": "techhype",
     "companyname": "techhype",
-    "otpservice": "email"
+    "otpservice": "email",
+    "profile": ""
 }
 

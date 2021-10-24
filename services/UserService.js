@@ -99,7 +99,7 @@ exports.checkOtp = async (otpcode, otpsession) => {
 };
 
 exports.generateToken = async (appid, userid) => {
-  const user = await User.find({ appid, userid });
+  const user = await User.findOne({ appid, userid });
   if (!user) {
     return {
       success: false,
@@ -111,6 +111,7 @@ exports.generateToken = async (appid, userid) => {
     {
       userid,
       appid,
+      companyid: user.companyid,
       role: user.role,
     },
     process.env.SECRET || "secret",
@@ -131,10 +132,11 @@ exports.checkToken = async (token) => {
         data: null,
       };
     }
-    const user = await User.find({
+    const user = await User.findOne({
       appid: decodedToken.appid,
       userid: decodedToken.userid,
     });
+
     return {
       message: "Successful.",
       success: true,
@@ -143,6 +145,8 @@ exports.checkToken = async (token) => {
         companyid: user.companyid,
         username: user.username,
         companyname: user.companyname,
+        role: user.role,
+        profile: user.profile,
       },
     };
   } catch (err) {
@@ -152,4 +156,48 @@ exports.checkToken = async (token) => {
       data: null,
     };
   }
+};
+
+exports.getUsers = async (
+  { search, page, perpage, sortby, reverse },
+  tokenData
+) => {
+  let filterQuery = {
+    appid: tokenData.appid,
+    companyid: tokenData.companyid,
+  };
+  if (tokenData.role == "superadmin") {
+    filterQuery = {};
+  }
+
+  const offset = (page - 1) * perpage;
+  let users = [];
+  let total = 0;
+  if (search) {
+    users = await User.find({
+      $text: { $search: search },
+      ...filterQuery,
+    })
+      .skip(offset)
+      .limit(perpage)
+      .sort({ [sortby]: reverse == "1" ? -1 : 1 });
+    total = await User.find({
+      $text: { $search: search },
+      ...filterQuery,
+    }).countDocuments();
+  } else {
+    users = await User.find(filterQuery)
+      .skip(offset)
+      .limit(perpage)
+      .sort({ [sortby]: reverse == "1" ? -1 : 1 });
+    total = await User.find(filterQuery).countDocuments();
+  }
+
+  return {
+    data: users,
+    page,
+    perpage,
+    total,
+    pagecount: Math.ceil(total / perpage),
+  };
 };

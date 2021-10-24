@@ -24,8 +24,16 @@ const userSchema = new Schema(
       enum: ["freeze", "active", "inactive"],
       default: "active",
     },
+    profile: {
+      type: String,
+      default: "",
+    },
+    mobile: RequiredString,
+    contactinfo: RequiredString,
+    contactperson: RequiredString,
   },
   { timestamps: true }
 );
+userSchema.index({ "$**": "text" });
 
 module.exports = model("User", userSchema);
