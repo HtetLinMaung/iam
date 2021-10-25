@@ -14,6 +14,9 @@ const {
   resendOtp,
   isOtpExist,
   getUsers,
+
+  getHashedPassword,
+  softDeleteUser,
 } = require("../services/UserService");
 
 router.post("/create-superadmin", async (req, res) => {
@@ -35,7 +38,7 @@ router.post("/create-superadmin", async (req, res) => {
   });
 });
 
-router.post("/create-user", isAuth, async (req, res) => {
+router.post("/users", isAuth, async (req, res) => {
   try {
     if (
       (req.tokenData.role == "admin" &&
@@ -44,15 +47,18 @@ router.post("/create-user", isAuth, async (req, res) => {
     ) {
       return res.status(401).json({ code: 401, message: "Unauthorized." });
     }
-    const isExisted = await isUserExisted(req.body.appid, req.body.userid);
+    const isExisted = await isUserExisted(req.tokenData.appid, req.body.userid);
     if (isExisted) {
       return res
         .status(400)
         .json({ code: 400, message: "User already existed." });
     }
+    const body = req.body;
+    if (req.tokenData.role == "admin") {
+      body.companyid = req.tokenData.companyid;
+    }
     const user = await createUser({
-      ...req.body,
-      role: req.body.role,
+      ...body,
     });
 
     return res.json({
@@ -61,6 +67,7 @@ router.post("/create-user", isAuth, async (req, res) => {
       data: user,
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ code: 500, message: "Internal Server Error" });
   }
 });
@@ -104,13 +111,15 @@ router.post("/login", async (req, res) => {
         });
       }
       return res.json({
-        otpsession: otp._id,
+        otpsession: "",
         code: 200,
         message: "Successful.",
         token,
+        profile: user.profile
       });
     }
   } catch (err) {
+    console.log(err);
     res.status(500).json({ code: 500, message: "Internal Server Error" });
   }
 });
@@ -196,6 +205,95 @@ router.get("/users", isAuth, async (req, res) => {
       ...usersData,
       code: 200,
       message: "Successful.",
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ code: 500, message: "Internal Server Error" });
+  }
+});
+
+router.get("/users/:userid", isAuth, async (req, res) => {
+  try {
+    if (req.tokenData.role == "normaluser") {
+      return res.status(401).json({ code: 401, message: "Unauthorized." });
+    }
+    const user = await getUser(req.tokenData.appid, req.params.userid);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found.",
+        code: 404,
+      });
+    }
+    return res.json({
+      data: user,
+      code: 200,
+      message: "Successful.",
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ code: 500, message: "Internal Server Error" });
+  }
+});
+
+router.put("/users/:userid", isAuth, async (req, res) => {
+  try {
+    if (
+      req.tokenData.role == "normaluser" ||
+      (req.tokenData.role == "admin" && req.body.role == "superadmin")
+    ) {
+      return res.status(401).json({ code: 401, message: "Unauthorized." });
+    }
+    const user = await getUser(req.tokenData.appid, req.params.userid);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found.",
+        code: 404,
+      });
+    }
+    user.userid = req.body.userid;
+    user.username = req.body.username;
+    user.companyname = req.body.companyname;
+    user.password = await getHashedPassword(req.body.password);
+    user.otpservice = req.body.otpservice;
+    user.role = req.body.role;
+    user.accountstatus = req.body.accountstatus;
+    user.contactinfo = req.body.contactinfo;
+    user.contactperson = req.body.contactperson;
+    if (req.tokenData.role == "supderadmin") {
+      user.companyid = req.body.companyid;
+    }
+
+    await user.save();
+
+    return res.json({
+      data: req.params.userid,
+      code: 200,
+      message: "User updated successful.",
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ code: 500, message: "Internal Server Error" });
+  }
+});
+
+router.delete("/users/:userid", isAuth, async (req, res) => {
+  try {
+    if (req.tokenData.role == "normaluser") {
+      return res.status(401).json({ code: 401, message: "Unauthorized." });
+    }
+    const deleted = await softDeleteUser(
+      req.tokenData.appid,
+      req.params.userid
+    );
+    if (!deleted) {
+      return res.status(404).json({
+        code: 404,
+        message: "User not found.",
+      });
+    }
+    return res.json({
+      code: 204,
+      message: "No Content.",
     });
   } catch (err) {
     console.log(err);

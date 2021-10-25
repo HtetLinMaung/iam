@@ -10,7 +10,7 @@ const { sendMail } = require("../utils/mail-utils");
 const create6RandomDigits = () => Math.floor(100000 + Math.random() * 900000);
 
 exports.getUser = async (appid, userid) => {
-  const user = await User.findOne({ appid, userid });
+  const user = await User.findOne({ appid, userid, status: 1 });
   return user;
 };
 
@@ -39,13 +39,13 @@ exports.isOtpExist = async (otpsession) => {
 };
 
 exports.resendOtp = async (appid, userid) => {
-  const user = await User.findOne({ userid });
+  const user = await this.getUser(appid, userid);
   otp = await this.sendOtp(appid, userid, user.otpservice);
   return otp;
 };
 
 exports.isUserExisted = async (appid, userid) => {
-  const user = await User.findOne({ appid, userid });
+  const user = await this.getUser(appid, userid);
 
   if (!user) {
     return false;
@@ -61,11 +61,17 @@ exports.createUser = async (user) => {
 };
 
 exports.checkCredential = async (appid, userid, password) => {
-  const user = await User.findOne({ appid, userid });
+  const user = await this.getUser(appid, userid);
   if (!user) {
     return {
       success: false,
-      message: "Userid does not exist.",
+      message: "User ID does not exist.",
+    };
+  }
+  if (user.accountstatus == "freeze") {
+    return {
+      success: false,
+      message: "Your Account has been suspended. Please contact administrator.",
     };
   }
   const passwordMatched = await bcrypt.compare(password, user.password);
@@ -99,7 +105,7 @@ exports.checkOtp = async (otpcode, otpsession) => {
 };
 
 exports.generateToken = async (appid, userid) => {
-  const user = await User.findOne({ appid, userid });
+  const user = await this.getUser(appid, userid);
   if (!user) {
     return {
       success: false,
@@ -112,6 +118,7 @@ exports.generateToken = async (appid, userid) => {
       userid,
       appid,
       companyid: user.companyid,
+      companyname: user.companyname,
       role: user.role,
     },
     process.env.SECRET || "secret",
@@ -119,7 +126,12 @@ exports.generateToken = async (appid, userid) => {
       expiresIn: "1d",
     }
   );
-  return { success: true, message: "Successful.", token };
+  return {
+    success: true,
+    message: "Successful.",
+    token,
+    profile: user.profile,
+  };
 };
 
 exports.checkToken = async (token) => {
@@ -132,10 +144,7 @@ exports.checkToken = async (token) => {
         data: null,
       };
     }
-    const user = await User.findOne({
-      appid: decodedToken.appid,
-      userid: decodedToken.userid,
-    });
+    const user = await this.getUser(decodedToken.appid, decodedToken.userid);
 
     return {
       message: "Successful.",
@@ -146,7 +155,6 @@ exports.checkToken = async (token) => {
         username: user.username,
         companyname: user.companyname,
         role: user.role,
-        profile: user.profile,
       },
     };
   } catch (err) {
@@ -165,9 +173,11 @@ exports.getUsers = async (
   let filterQuery = {
     appid: tokenData.appid,
     companyid: tokenData.companyid,
+    role: { $ne: "superadmin" },
+    status: 1,
   };
   if (tokenData.role == "superadmin") {
-    filterQuery = {};
+    filterQuery = { status: 1 };
   }
 
   const offset = (page - 1) * perpage;
@@ -200,4 +210,19 @@ exports.getUsers = async (
     total,
     pagecount: Math.ceil(total / perpage),
   };
+};
+
+exports.getHashedPassword = async (password) => {
+  const hPwd = await bcrypt.hash(password, 12);
+  return hPwd;
+};
+
+exports.softDeleteUser = async (appid, userid) => {
+  const user = await this.getUser(appid, userid);
+  if (!user) {
+    return false;
+  }
+  user.status = 0;
+  await user.save();
+  return true;
 };

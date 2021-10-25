@@ -29,8 +29,18 @@ const userSchema = new Schema(
       default: "",
     },
     mobile: RequiredString,
-    contactinfo: RequiredString,
-    contactperson: RequiredString,
+    contactinfo: {
+      type: String,
+      default: "",
+    },
+    contactperson: {
+      type: String,
+      default: "",
+    },
+    status: {
+      type: Number,
+      default: 1,
+    },
   },
   { timestamps: true }
 );
