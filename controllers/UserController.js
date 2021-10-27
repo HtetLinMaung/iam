@@ -58,6 +58,7 @@ router.post("/users", isAuth, async (req, res) => {
     }
     const user = await createUser({
       ...body,
+      appid: req.tokenData.appid,
     });
 
     return res.json({

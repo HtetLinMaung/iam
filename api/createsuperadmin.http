@@ -1,14 +1,15 @@
-POST http://localhost:5000/iam/auth/create-superadmin HTTP/1.1
+POST http://150.95.82.125/iam/auth/create-superadmin HTTP/1.1
 content-type: application/json
 
 {
     "appid": "digitalinventory",
-    "userid": "jsthtet96@gmail.com",
+    "userid": "admin",
     "password": "P@ssword",
-    "username": "John Satieer",
+    "username": "Admin",
     "companyid": "techhype",
     "companyname": "techhype",
-    "otpservice": "email",
-    "profile": ""
+    "otpservice": "none",
+    "profile": "",
+    "mobile": "09404888722"
 }
 
