@@ -259,6 +259,7 @@ router.put("/users/:userid", isAuth, async (req, res) => {
     user.accountstatus = req.body.accountstatus;
     user.contactinfo = req.body.contactinfo;
     user.contactperson = req.body.contactperson;
+    user.profile = req.body.profile;
     if (req.tokenData.role == "supderadmin") {
       user.companyid = req.body.companyid;
     }
