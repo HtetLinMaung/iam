@@ -14,7 +14,6 @@ const {
   resendOtp,
   isOtpExist,
   getUsers,
-
   getHashedPassword,
   softDeleteUser,
 } = require("../services/UserService");
@@ -115,7 +114,7 @@ router.post("/login", async (req, res) => {
         code: 200,
         message: "Successful.",
         token,
-        profile: user.profile
+        profile: user.profile,
       });
     }
   } catch (err) {
