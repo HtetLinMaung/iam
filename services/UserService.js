@@ -226,3 +226,19 @@ exports.softDeleteUser = async (appid, userid) => {
   await user.save();
   return true;
 };
+
+exports.getCompanyAndUser = async (appid, companyid, role) => {
+  let users = [];
+  if (role == "admin") {
+    users = await User.find(
+      { appid, companyid },
+      { userid: 1, username: 1, companyid: 1, companyname: 1 }
+    );
+  } else if (role == "superadmin") {
+    users = await User.find(
+      { appid },
+      { userid: 1, username: 1, companyid: 1, companyname: 1 }
+    );
+  }
+  return users;
+};

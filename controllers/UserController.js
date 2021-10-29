@@ -16,6 +16,7 @@ const {
   getUsers,
   getHashedPassword,
   softDeleteUser,
+  getCompanyAndUser,
 } = require("../services/UserService");
 
 router.post("/create-superadmin", async (req, res) => {
@@ -295,6 +296,43 @@ router.delete("/users/:userid", isAuth, async (req, res) => {
     return res.json({
       code: 204,
       message: "No Content.",
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ code: 500, message: "Internal Server Error" });
+  }
+});
+
+router.get("/company-and-user", isAuth, async (req, res) => {
+  try {
+    if (req.tokenData.role == "normaluser") {
+      return res.status(401).json({ code: 401, message: "Unauthorized." });
+    }
+    const users = await getCompanyAndUser(
+      req.tokenData.appid,
+      req.tokenData.companyid,
+      req.tokenData.role
+    );
+    const data = [];
+    for (const user of users) {
+      const com = data.find((d) => d.companyid == user.companyid);
+      if (com) {
+        com.users.push({
+          userid: user.userid,
+          username: user.username,
+        });
+      } else {
+        data.push({
+          companyid: user.companyid,
+          companyname: user.companyname,
+          users: [],
+        });
+      }
+    }
+    return res.json({
+      data,
+      code: 200,
+      message: "Successful.",
     });
   } catch (err) {
     console.log(err);
