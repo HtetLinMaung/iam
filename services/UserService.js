@@ -40,7 +40,7 @@ exports.isOtpExist = async (otpsession) => {
 
 exports.resendOtp = async (appid, userid) => {
   const user = await this.getUser(appid, userid);
-  otp = await this.sendOtp(appid, userid, user.otpservice);
+  const otp = await this.sendOtp(appid, userid, user.otpservice);
   return otp;
 };
 
