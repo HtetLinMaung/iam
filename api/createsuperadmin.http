@@ -2,7 +2,7 @@ POST http://150.95.82.125/iam/auth/create-superadmin HTTP/1.1
 content-type: application/json
 
 {
-    "appid": "digitalinventory",
+    "appid": "juice",
     "userid": "admin",
     "password": "P@ssword",
     "username": "Admin",
